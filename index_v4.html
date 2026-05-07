@@ -417,7 +417,22 @@ select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.or
 <div class="toast" id="toast"></div>
 
 <script>
-// ── State ──
+// ── JSONP helper — bypass CORS ──
+function gasRequest(url) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Math.random().toString(36).slice(2);
+    const script = document.createElement('script');
+    const sep = url.includes('?') ? '&' : '?';
+    script.src = url + sep + 'callback=' + cbName;
+    script.onerror = () => { delete window[cbName]; document.body.removeChild(script); reject(new Error('Network error')); };
+    window[cbName] = (data) => {
+      delete window[cbName];
+      document.body.removeChild(script);
+      resolve(data);
+    };
+    document.body.appendChild(script);
+  });
+}
 let GAS_URL   = localStorage.getItem('gas_url') || '';
 let STORES    = {};
 let PRODUCTS  = {};
@@ -508,8 +523,7 @@ function switchTab(t) {
 // ── Masters ──
 async function loadMasters() {
   try {
-    const res  = await fetch(GAS_URL+'?action=getMasters', {redirect:'follow'});
-    const data = await res.json();
+    const data = await gasRequest(GAS_URL+'?action=getMasters');
     if (data.success) {
       STORES=data.stores||{}; PRODUCTS=data.products||{}; PROD_LIST=data.productList||[];
       document.querySelectorAll('.prod-select').forEach(s => buildProdSelect(s));
@@ -528,8 +542,7 @@ function buildProdSelect(sel) {
 }
 async function loadLots() {
   try {
-    const res  = await fetch(GAS_URL+'?action=getLots', {redirect:'follow'});
-    const data = await res.json();
+    const data = await gasRequest(GAS_URL+'?action=getLots');
     if (data.success) {
       LOT_LIST = data.lots||[];
       document.querySelectorAll('.lot-select').forEach(s => buildLotSelect(s));
@@ -590,7 +603,7 @@ function addRow(type) {
           <div><label class="mini-l">単価 <small>列 G</small></label><input class="mini-input" type="number" id="ship-prc-${n}" placeholder="0" min="0"></div>
         </div>
         <div class="prod-row"><label class="mini-l">手数 <small>列 H</small></label>
-          <select class="mini-select" id="ship-fee-${n}"><option value="0">0%</option><option value="0.08">8%</option><option value="0.1" selected>10%</option></select></div>
+          <select class="mini-select" id="ship-fee-${n}"><option value="0%">0%</option><option value="8%">8%</option><option value="10%" selected>10%</option></select></div>
         <div class="prod-row"><label class="mini-l">ロット番号 <small>列 K</small></label>
           <select class="mini-select lot-select" id="ship-lot-${n}"><option value="">— ロットを選択 —</option></select></div>
       </div>`;
@@ -643,8 +656,7 @@ async function submitData(type) {
   btn.disabled=true; btn.innerHTML='<span class="spin">◌</span> 送信中...';
   try {
     const action = type==='ship' ? 'writeShipment' : 'writeArrival';
-    const res  = await fetch(GAS_URL+'?action='+action+'&rows='+encodeURIComponent(JSON.stringify(rows)), {redirect:'follow'});
-    const data = await res.json();
+    const data = await gasRequest(GAS_URL+'?action='+action+'&rows='+encodeURIComponent(JSON.stringify(rows)));
     if (data.success) {
       showToast('✓ '+data.message,'ok');
       document.getElementById(type+'-rows').innerHTML=''; counters[type]=0; updateCount(type);
@@ -669,8 +681,7 @@ async function loadLotList() {
   const el = document.getElementById('lot-list-content');
   el.innerHTML = `<div class="tab-loading"><div class="spin" style="font-size:20px;color:var(--lot);">◌</div><span>読み込み中…</span></div>`;
   try {
-    const res  = await fetch(GAS_URL+'?action=getLots', {redirect:'follow'});
-    const data = await res.json();
+    const data = await gasRequest(GAS_URL+'?action=getLots');
     if (!data.success) throw new Error(data.message);
     LOT_LIST = data.lots||[];
     renderLotList();
@@ -737,8 +748,7 @@ async function loadPnL() {
   el.innerHTML = `<div class="tab-loading"><div class="spin" style="font-size:20px;color:var(--pnl);">◌</div><span>集計中…</span></div>`;
   ['pnl-sales','pnl-cost','pnl-profit'].forEach(id => { document.getElementById(id).textContent='—'; document.getElementById(id).className='pnl-sum-value'; });
   try {
-    const res  = await fetch(GAS_URL+'?action=getLotPnL', {redirect:'follow'});
-    const data = await res.json();
+    const data = await gasRequest(GAS_URL+'?action=getLotPnL');
     if (!data.success) throw new Error(data.message);
     PNL_DATA = data.lots||[];
     let totalSales=0, totalCost=0;
