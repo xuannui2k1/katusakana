@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>入出荷管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#EEEEE8; --surface:#FAFAF8; --surface2:#F2F1EE;
+  --border:rgba(44,44,42,0.10); --border-s:rgba(44,44,42,0.22);
+  --text:#1C1C1A; --text-2:#5C5C58; --text-3:#9C9C96;
+  --accent:#1C1C1A; --accent-fg:#FAFAF8;
+  --arr:#1A6644; --ship:#1E4D8C; --lot:#B85C00; --pnl:#7B3FA0;
+  --ok-bg:#EAF3DE; --ok-fg:#2D5A0E;
+  --err-bg:#FCEAEA; --err-fg:#9B2020;
+  --warn-bg:#FFF3DC; --warn-fg:#7A4A00;
+  --profit-bg:#EAF3DE; --profit-fg:#1A6644;
+  --loss-bg:#FCEAEA; --loss-fg:#9B2020;
+  --r:12px; --rs:8px;
+}
+@media (prefers-color-scheme:dark) {
+  :root {
+    --bg:#141412; --surface:#1E1E1C; --surface2:#252523;
+    --border:rgba(255,255,255,0.09); --border-s:rgba(255,255,255,0.18);
+    --text:#EAEAE4; --text-2:#8A8A84; --text-3:#5A5A56;
+    --accent:#EAEAE4; --accent-fg:#141412;
+    --ok-bg:#173404; --ok-fg:#A8D070;
+    --err-bg:#4A1010; --err-fg:#F0A0A0;
+    --warn-bg:#3A2000; --warn-fg:#F0C070;
+    --profit-bg:#173404; --profit-fg:#A8D070;
+    --loss-bg:#4A1010; --loss-fg:#F0A0A0;
+  }
+}
+html,body{height:100%;font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;font-size:15px;}
+.app{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+.header{background:var(--surface);border-bottom:0.5px solid var(--border);position:sticky;top:0;z-index:200;}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 12px;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-mark{width:34px;height:34px;background:var(--accent);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.brand-mark svg{stroke:var(--accent-fg);}
+.brand-text-main{font-size:13px;font-weight:700;}
+.brand-text-sub{font-size:10px;color:var(--text-3);margin-top:1px;}
+.conn-badge{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:5px 10px;border-radius:20px;background:var(--ok-bg);color:var(--ok-fg);}
+.conn-badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
+.tabs{display:flex;padding:0 18px;gap:2px;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:1;padding:10px 0 11px;font-size:12px;font-weight:600;font-family:inherit;text-align:center;border:none;background:none;cursor:pointer;color:var(--text-3);border-bottom:2.5px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap;min-width:0;}
+.tab.t-arr{color:var(--arr);border-bottom-color:var(--arr);}
+.tab.t-ship{color:var(--ship);border-bottom-color:var(--ship);}
+.tab.t-lot{color:var(--lot);border-bottom-color:var(--lot);}
+.tab.t-pnl{color:var(--pnl);border-bottom-color:var(--pnl);}
+.content{flex:1;padding:18px 16px 60px;}
+.sec{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.09em;margin:22px 0 8px 2px;display:flex;align-items:center;justify-content:space-between;}
+.sec:first-child{margin-top:0;}
+.sec.c-arr{color:var(--arr);} .sec.c-ship{color:var(--ship);} .sec.c-lot{color:var(--lot);} .sec.c-pnl{color:var(--pnl);}
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.f-row{display:flex;align-items:flex-start;padding:12px 16px;border-bottom:0.5px solid var(--border);gap:14px;}
+.f-row:last-child{border-bottom:none;}
+.f-lbl{font-size:12px;font-weight:500;color:var(--text-2);min-width:90px;flex-shrink:0;padding-top:9px;line-height:1.3;}
+.f-lbl small{display:block;font-size:10px;font-weight:400;color:var(--text-3);margin-top:1px;}
+.f-val{flex:1;}
+.date-row{display:flex;gap:8px;align-items:center;}
+.date-row select{flex:1;}
+.date-sep{font-size:16px;font-weight:600;color:var(--text-3);flex-shrink:0;}
+input[type=text],input[type=number],select{width:100%;padding:8px 11px;font-size:14px;font-family:inherit;border:0.5px solid var(--border-s);border-radius:var(--rs);background:var(--surface);color:var(--text);-webkit-appearance:none;appearance:none;transition:border-color .15s;}
+input:focus,select:focus{outline:none;border-color:var(--accent);}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239C9C96' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6,9 12,15 18,9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px;}
+.confirm{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;margin-top:5px;background:var(--ok-bg);color:var(--ok-fg);}
+.confirm.err{background:var(--err-bg);color:var(--err-fg);}
+.prod-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
+.prod-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;animation:slideIn .18s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.prod-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:0.5px solid var(--border);background:var(--surface2);}
+.prod-num{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;}
+.del-btn{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:var(--text-3);background:none;border:none;cursor:pointer;padding:3px 7px;border-radius:5px;font-family:inherit;transition:all .15s;}
+.del-btn:hover{color:var(--err-fg);background:var(--err-bg);}
+.prod-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
+.prod-row{display:flex;flex-direction:column;gap:4px;}
+.prod-row.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.prod-row.three{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;}
+.mini-l{font-size:11px;font-weight:500;color:var(--text-2);}
+.mini-l small{font-size:10px;font-weight:400;color:var(--text-3);}
+.mini-input{width:100%;padding:8px 10px;font-size:13px;font-family:inherit;border:0.5px solid var(--border-s);border-radius:var(--rs);background:var(--surface);color:var(--text);-webkit-appearance:none;appearance:none;}
+.mini-input:focus{outline:none;border-color:var(--accent);}
+.mini-select{width:100%;padding:8px 28px 8px 10px;font-size:13px;font-family:inherit;border:0.5px solid var(--border-s);border-radius:var(--rs);background:var(--surface);color:var(--text);-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%239C9C96' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6,9 12,15 18,9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;}
+.mini-select:focus{outline:none;border-color:var(--accent);}
+.row-count{font-size:11px;color:var(--text-3);font-weight:500;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:0 2px;}
+.add-btn{width:100%;padding:11px;font-size:13px;font-weight:500;font-family:inherit;border:1px dashed var(--border-s);border-radius:var(--r);background:none;color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;}
+.add-btn:hover{background:var(--surface);color:var(--text);border-style:solid;}
+.add-btn.arr:hover{border-color:var(--arr);color:var(--arr);}
+.add-btn.ship:hover{border-color:var(--ship);color:var(--ship);}
+.submit-wrap{margin-top:24px;}
+.submit-btn{width:100%;padding:15px;font-size:14px;font-weight:700;font-family:inherit;border:none;border-radius:var(--r);display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;transition:opacity .15s,transform .1s;letter-spacing:.02em;}
+.submit-btn.arr{background:var(--arr);color:#fff;}
+.submit-btn.ship{background:var(--ship);color:#fff;}
+.submit-btn:hover{opacity:.88;} .submit-btn:active{transform:scale(.985);}
+.submit-btn:disabled{opacity:.32;cursor:not-allowed;transform:none;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(70px);padding:11px 18px;border-radius:var(--r);font-size:13px;font-weight:600;white-space:nowrap;z-index:9999;opacity:0;pointer-events:none;transition:transform .28s cubic-bezier(.34,1.56,.64,1),opacity .2s;display:flex;align-items:center;gap:7px;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+.toast.ok{background:var(--ok-bg);color:var(--ok-fg);border:0.5px solid rgba(45,90,14,.2);}
+.toast.err{background:var(--err-bg);color:var(--err-fg);border:0.5px solid rgba(155,32,32,.2);}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .7s linear infinite;display:inline-block;}
+/* ロット */
+.lot-filter{display:flex;gap:8px;margin-bottom:14px;}
+.lot-filter-btn{flex:1;padding:8px;font-size:12px;font-weight:600;font-family:inherit;border:0.5px solid var(--border-s);border-radius:20px;background:none;color:var(--text-2);cursor:pointer;transition:all .15s;}
+.lot-filter-btn.active{background:var(--lot);color:#fff;border-color:var(--lot);}
+.lot-item{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px;}
+.lot-item-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;}
+.lot-item-left{display:flex;flex-direction:column;gap:4px;}
+.lot-id{font-size:14px;font-weight:700;}
+.lot-date{font-size:11px;color:var(--text-3);}
+.lot-item-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
+.lot-status-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.lot-status-badge.active{background:var(--ok-bg);color:var(--ok-fg);}
+.lot-status-badge.sold{background:var(--surface2);color:var(--text-3);border:0.5px solid var(--border-s);}
+.kanryo-btn{font-size:11px;font-weight:700;font-family:inherit;padding:6px 12px;border-radius:20px;border:0.5px solid var(--lot);background:none;color:var(--lot);cursor:pointer;transition:all .15s;}
+.kanryo-btn:hover{background:var(--lot);color:#fff;}
+.tab-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:48px 24px;color:var(--text-3);font-size:13px;}
+.empty-state{padding:48px 24px;text-align:center;color:var(--text-3);font-size:13px;line-height:1.8;}
+.empty-icon{font-size:32px;margin-bottom:12px;}
+/* 損益 */
+.pnl-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;}
+.pnl-sum-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:12px;text-align:center;}
+.pnl-sum-label{font-size:9px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;}
+.pnl-sum-value{font-size:16px;font-weight:700;}
+.pnl-sum-value.profit{color:var(--profit-fg);} .pnl-sum-value.loss{color:var(--loss-fg);}
+.pnl-tabs{display:flex;gap:6px;margin-bottom:14px;}
+.pnl-tab-btn{flex:1;padding:8px;font-size:12px;font-weight:600;font-family:inherit;border:0.5px solid var(--border-s);border-radius:20px;background:none;color:var(--text-2);cursor:pointer;transition:all .15s;}
+.pnl-tab-btn.active{background:var(--pnl);color:#fff;border-color:var(--pnl);}
+.pnl-refresh-btn{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--pnl);background:none;border:0.5px solid var(--pnl);padding:5px 10px;border-radius:20px;cursor:pointer;font-family:inherit;}
+.lot-refresh-btn{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--lot);background:none;border:0.5px solid var(--lot);padding:5px 10px;border-radius:20px;cursor:pointer;font-family:inherit;}
+.pnl-table-wrap{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.pnl-table{width:100%;border-collapse:collapse;}
+.pnl-table th{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;padding:10px 14px;text-align:left;border-bottom:0.5px solid var(--border);background:var(--surface2);}
+.pnl-table th.num{text-align:right;}
+.pnl-table td{font-size:12px;padding:10px 14px;border-bottom:0.5px solid var(--border);color:var(--text);}
+.pnl-table tr:last-child td{border-bottom:none;}
+.pnl-table td.num{text-align:right;font-weight:600;font-size:13px;}
+.pnl-table td.profit{color:var(--profit-fg);font-weight:700;}
+.pnl-table td.loss{color:var(--loss-fg);font-weight:700;}
+.lot-pnl-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px;}
+.lot-pnl-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface2);border-bottom:0.5px solid var(--border);cursor:pointer;user-select:none;}
+.lot-pnl-head-left{display:flex;flex-direction:column;gap:3px;}
+.lot-pnl-id{font-size:13px;font-weight:700;}
+.lot-pnl-date{font-size:10px;color:var(--text-3);}
+.lot-pnl-head-right{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.lot-pnl-badge{font-size:13px;font-weight:700;padding:3px 10px;border-radius:20px;}
+.lot-pnl-badge.profit{background:var(--profit-bg);color:var(--profit-fg);}
+.lot-pnl-badge.loss{background:var(--loss-bg);color:var(--loss-fg);}
+.lot-pnl-badge.break{background:var(--surface);color:var(--text-3);border:0.5px solid var(--border-s);}
+.lot-pnl-margin{font-size:10px;color:var(--text-3);}
+.lot-pnl-body{display:none;}
+.lot-pnl-body.open{display:block;}
+.lot-pnl-section{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:8px 16px 6px;color:var(--text-3);border-bottom:0.5px solid var(--border);}
+.lot-pnl-section.arr{color:var(--arr);} .lot-pnl-section.ship{color:var(--ship);}
+.lot-pnl-detail{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-bottom:0.5px solid var(--border);font-size:12px;}
+.lot-pnl-detail:last-child{border-bottom:none;}
+.lot-pnl-detail-label{color:var(--text-2);}
+.lot-pnl-detail-value{font-weight:600;}
+.lot-pnl-subtotal{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--surface2);border-top:0.5px solid var(--border);}
+.lot-pnl-subtotal-label{font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;}
+.lot-pnl-subtotal-value{font-size:14px;font-weight:700;}
+.lot-pnl-subtotal-value.profit{color:var(--profit-fg);}
+.lot-pnl-subtotal-value.loss{color:var(--loss-fg);}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Setup overlay -->
+  <div id="setup-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9000;align-items:center;justify-content:center;padding:20px;">
+    <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:30px 22px;width:100%;max-width:420px;">
+      <div style="width:56px;height:56px;background:var(--warn-bg);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--warn-fg)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </div>
+      <div style="font-size:17px;font-weight:700;text-align:center;margin-bottom:8px;">GAS URLを設定</div>
+      <div style="font-size:13px;color:var(--text-2);text-align:center;line-height:1.75;margin-bottom:22px;">Google Apps Script の<br>デプロイURLを入力してください</div>
+      <label style="font-size:12px;font-weight:600;color:var(--text-2);display:block;margin-bottom:6px;">デプロイURL</label>
+      <input type="text" id="gas-url-input" placeholder="https://script.google.com/macros/s/..." style="font-size:12px;padding:10px 12px;margin-bottom:14px;">
+      <button onclick="connectGAS()" style="width:100%;padding:14px;font-size:14px;font-weight:700;font-family:inherit;border:none;border-radius:var(--r);background:var(--accent);color:var(--accent-fg);cursor:pointer;">接続して開始</button>
+    </div>
+  </div>
+  <div class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        </div>
+        <div>
+          <div class="brand-text-main">入出荷管理</div>
+          <div class="brand-text-sub" id="conn-label">接続中...</div>
+        </div>
+      </div>
+      <div class="conn-badge" id="conn-badge">
+        <span class="dot"></span>
+        <span id="conn-text">接続中</span>
+      </div>
+      <button onclick="resetURL()" style="background:none;border:0.5px solid var(--border-s);border-radius:20px;padding:5px 10px;font-size:11px;font-weight:500;color:var(--text-2);cursor:pointer;font-family:inherit;">URL変更</button>
+    </div>
+    <div class="tabs">
+      <button class="tab t-arr" id="tab-arr" onclick="switchTab('arr')">📥 入荷</button>
+      <button class="tab" id="tab-ship" onclick="switchTab('ship')">📤 出荷</button>
+      <button class="tab" id="tab-lot" onclick="switchTab('lot')">📦 ロット</button>
+      <button class="tab" id="tab-pnl" onclick="switchTab('pnl')">💰 損益</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- 入荷 -->
+    <div id="tab-arr-content">
+      <div class="sec c-arr">基本情報</div>
+      <div class="card">
+        <div class="f-row">
+          <div class="f-lbl">日付<small>列 A</small></div>
+          <div class="f-val">
+            <div class="date-row">
+              <select id="arr-month"></select>
+              <span class="date-sep">/</span>
+              <select id="arr-day"></select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sec c-arr">商品明細</div>
+      <div class="row-count"><span id="arr-count">0件</span></div>
+      <div class="prod-list" id="arr-rows"></div>
+      <button class="add-btn arr" onclick="addRow('arr')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        商品を追加
+      </button>
+      <div class="submit-wrap">
+        <button class="submit-btn arr" id="arr-btn" onclick="submitData('arr')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9" fill="currentColor" stroke="none"/></svg>
+          入荷数シートに送信
+        </button>
+      </div>
+    </div>
+
+    <!-- 出荷 -->
+    <div id="tab-ship-content" style="display:none">
+      <div class="sec c-ship">基本情報</div>
+      <div class="card">
+        <div class="f-row">
+          <div class="f-lbl">日付<small>列 A</small></div>
+          <div class="f-val">
+            <div class="date-row">
+              <select id="ship-month"></select>
+              <span class="date-sep">/</span>
+              <select id="ship-day"></select>
+            </div>
+          </div>
+        </div>
+        <div class="f-row">
+          <div class="f-lbl">店舗コード<small>列 B</small></div>
+          <div class="f-val">
+            <input type="text" id="ship-store" placeholder="例: 2" oninput="lookupStore(this.value)">
+            <div id="ship-store-tag" style="min-height:20px;margin-top:5px;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sec c-ship">商品明細</div>
+      <div class="row-count"><span id="ship-count">0件</span></div>
+      <div class="prod-list" id="ship-rows"></div>
+      <button class="add-btn ship" onclick="addRow('ship')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        商品を追加
+      </button>
+      <div class="submit-wrap">
+        <button class="submit-btn ship" id="ship-btn" onclick="submitData('ship')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9" fill="currentColor" stroke="none"/></svg>
+          出荷数シートに送信
+        </button>
+      </div>
+    </div>
+
+    <!-- ロット -->
+    <div id="tab-lot-content" style="display:none">
+      <div class="sec c-lot" style="margin-bottom:10px;">
+        ロット一覧
+        <button class="lot-refresh-btn" onclick="loadLotList()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          更新
+        </button>
+      </div>
+      <div class="lot-filter">
+        <button class="lot-filter-btn active" id="lot-f-all" onclick="filterLots('all')">すべて</button>
+        <button class="lot-filter-btn" id="lot-f-active" onclick="filterLots('active')">販売中</button>
+        <button class="lot-filter-btn" id="lot-f-sold" onclick="filterLots('sold')">完売</button>
+      </div>
+      <div id="lot-list-content">
+        <div class="tab-loading"><div class="spin" style="font-size:20px;color:var(--lot);">◌</div><span>読み込み中…</span></div>
+      </div>
+    </div>
+
+    <!-- 損益 -->
+    <div id="tab-pnl-content" style="display:none">
+      <div class="sec c-pnl" style="margin-bottom:10px;">
+        損益集計
+        <button class="pnl-refresh-btn" onclick="loadPnL()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          更新
+        </button>
+      </div>
+      <div class="pnl-summary">
+        <div class="pnl-sum-card"><div class="pnl-sum-label">総売上</div><div class="pnl-sum-value" id="pnl-sales">—</div></div>
+        <div class="pnl-sum-card"><div class="pnl-sum-label">総仕入</div><div class="pnl-sum-value" id="pnl-cost">—</div></div>
+        <div class="pnl-sum-card"><div class="pnl-sum-label">純利益</div><div class="pnl-sum-value" id="pnl-profit">—</div></div>
+      </div>
+      <div class="pnl-tabs">
+        <button class="pnl-tab-btn active" id="pnl-t-lot" onclick="switchPnlTab('lot')">ロット別</button>
+        <button class="pnl-tab-btn" id="pnl-t-week" onclick="switchPnlTab('week')">週次</button>
+        <button class="pnl-tab-btn" id="pnl-t-month" onclick="switchPnlTab('month')">月次</button>
+      </div>
+      <div id="pnl-content">
+        <div class="tab-loading"><div class="spin" style="font-size:20px;color:var(--pnl);">◌</div><span>集計中…</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// GAS環境ではwindow.location.hrefからURLを取得
+let GAS_URL = localStorage.getItem('gas_url') || '';
+
+let STORES={}, PRODUCTS={}, PROD_LIST=[], LOT_LIST=[], LOT_STATUS={}, PNL_DATA=[];
+let counters={arr:0,ship:0};
+let toastTm=null, pnlLoaded=false, lotLoaded=false, curPnlTab='lot', curLotFilter='all';
+
+// ── Init ──
+window.onload = function() {
+  if (!GAS_URL) {
+    document.getElementById('setup-overlay').style.display='flex';
+    return;
+  }
+  startApp();
+};
+
+function connectGAS() {
+  const url = document.getElementById('gas-url-input').value.trim();
+  if (!url.startsWith('https://script.google.com')) { showToast('正しいGAS URLを入力してください','err'); return; }
+  GAS_URL = url;
+  localStorage.setItem('gas_url', GAS_URL);
+  document.getElementById('setup-overlay').style.display='none';
+  startApp();
+}
+
+function resetURL() {
+  if (!confirm('GAS URLをリセットしますか？')) return;
+  localStorage.removeItem('gas_url');
+  location.reload();
+}
+
+function startApp() {
+  buildDateSelects('arr-month','arr-day');
+  buildDateSelects('ship-month','ship-day');
+  setTodayDate('arr-month','arr-day');
+  setTodayDate('ship-month','ship-day');
+  addRow('arr'); addRow('ship');
+  loadLotStatus();
+  loadMasters();
+}
+
+// ── API ──
+async function api(action, params={}) {
+  const url = GAS_URL + '?action=' + action + Object.keys(params).map(k=>'&'+k+'='+encodeURIComponent(params[k])).join('');
+  const res = await fetch(url, {redirect:'follow'});
+  return await res.json();
+}
+
+// ── Masters ──
+async function loadMasters() {
+  try {
+    const data = await api('getMasters');
+    if (data.success) {
+      STORES=data.stores||{}; PRODUCTS=data.products||{}; PROD_LIST=data.productList||[];
+      document.querySelectorAll('.prod-select').forEach(s=>buildProdSelect(s));
+      document.getElementById('conn-label').textContent='接続済み';
+      document.getElementById('conn-badge').className='conn-badge';
+      document.getElementById('conn-text').textContent='接続済み';
+      loadLots();
+    }
+  } catch(e) { showToast('マスタ取得失敗','err'); }
+}
+
+async function loadLots() {
+  try {
+    const data = await api('getLots');
+    if (data.success) {
+      LOT_LIST=data.lots||[];
+      document.querySelectorAll('.lot-select').forEach(s=>buildLotSelect(s));
+    }
+  } catch(e) {}
+}
+
+// ── Date ──
+function buildDateSelects(mId,dId) {
+  const mSel=document.getElementById(mId), dSel=document.getElementById(dId);
+  mSel.innerHTML='';
+  for(let m=1;m<=12;m++){const o=document.createElement('option');o.value=m;o.textContent=m+'月';mSel.appendChild(o);}
+  buildDays(dSel,parseInt(mSel.value));
+  mSel.addEventListener('change',()=>{const p=parseInt(dSel.value);buildDays(dSel,parseInt(mSel.value));if(p&&p<=dSel.options.length)dSel.value=p;});
+}
+function buildDays(dSel,month) {
+  const days=new Date(new Date().getFullYear(),month,0).getDate();
+  dSel.innerHTML='';
+  for(let d=1;d<=days;d++){const o=document.createElement('option');o.value=d;o.textContent=d+'日';dSel.appendChild(o);}
+}
+function setTodayDate(mId,dId) {
+  const d=new Date();
+  document.getElementById(mId).value=d.getMonth()+1;
+  buildDays(document.getElementById(dId),d.getMonth()+1);
+  document.getElementById(dId).value=d.getDate();
+}
+function getDate(mId,dId) {
+  const y=new Date().getFullYear();
+  const m=String(document.getElementById(mId).value).padStart(2,'0');
+  const d=String(document.getElementById(dId).value).padStart(2,'0');
+  return y+'/'+m+'/'+d;
+}
+function fmt(n){return Number(n).toLocaleString('ja-JP');}
+
+// ── Tab ──
+function switchTab(t) {
+  ['arr','ship','lot','pnl'].forEach(k=>{
+    const c=document.getElementById('tab-'+k+'-content');
+    const b=document.getElementById('tab-'+k);
+    if(c)c.style.display=k===t?'block':'none';
+    if(b){const cls={arr:'t-arr',ship:'t-ship',lot:'t-lot',pnl:'t-pnl'}[k];b.className='tab'+(k===t?' '+cls:'');}
+  });
+  if(t==='lot'&&!lotLoaded){lotLoaded=true;loadLotList();}
+  if(t==='pnl'&&!pnlLoaded){pnlLoaded=true;loadPnL();}
+}
+
+// ── Store lookup ──
+function lookupStore(v) {
+  const el=document.getElementById('ship-store-tag');
+  if(!v.trim()){el.innerHTML='';return;}
+  const name=STORES[String(parseInt(v))];
+  el.innerHTML=name
+    ?`<span class="confirm"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20,6 9,17 4,12"/></svg>${name}</span>`
+    :'<span class="confirm err">店舗コードが見つかりません</span>';
+}
+
+// ── Selects ──
+function buildProdSelect(sel) {
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— 商品を選択 —</option>';
+  PROD_LIST.forEach(p=>{const o=document.createElement('option');o.value=p.code;o.textContent=p.code+' — '+p.name;sel.appendChild(o);});
+  if(cur)sel.value=cur;
+}
+function buildLotSelect(sel) {
+  const cur=sel.value;
+  sel.innerHTML='<option value="">— ロットを選択 —</option>';
+  LOT_LIST.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;sel.appendChild(o);});
+  if(cur)sel.value=cur;
+}
+
+// ── LOT number ──
+function genLot(){
+  const n=new Date();
+  const mm=String(n.getMonth()+1).padStart(2,'0');
+  const dd=String(n.getDate()).padStart(2,'0');
+  return 'LOT-'+mm+dd+'-'+String(counters.arr).padStart(3,'0');
+}
+
+// ── Add row ──
+function addRow(type) {
+  counters[type]++;
+  const n=counters[type];
+  const div=document.createElement('div');
+  div.className='prod-card'; div.id=type+'r'+n;
+  const delBtn=`<button class="del-btn" onclick="removeRow('${type}r${n}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>削除</button>`;
+
+  if(type==='arr') {
+    div.innerHTML=`
+      <div class="prod-head"><span class="prod-num">商品 ${n}</span>${delBtn}</div>
+      <div class="prod-body">
+        <div class="prod-row"><label class="mini-l">商品コード <small>列 B</small></label>
+          <select class="mini-select prod-select" id="arr-pc-${n}"><option value="">— 商品を選択 —</option></select></div>
+        <div class="prod-row three">
+          <div><label class="mini-l">数量 <small>列 D</small></label><input class="mini-input" type="number" id="arr-qty-${n}" placeholder="0" min="0" step="0.01"></div>
+          <div><label class="mini-l">単位</label>
+            <select class="mini-select" id="arr-unit-${n}">
+              <option value="kg">kg</option>
+              <option value="回">回</option>
+            </select></div>
+          <div><label class="mini-l">単価 <small>列 E</small></label><input class="mini-input" type="number" id="arr-prc-${n}" placeholder="0" min="0"></div>
+        </div>
+        <div class="prod-row"><label class="mini-l">税金 <small>列 F</small></label><input class="mini-input" type="number" id="arr-tax-${n}" placeholder="0" min="0"></div>
+        <div class="prod-row"><label class="mini-l">ロット番号 <small>自動生成</small></label>
+          <input class="mini-input" type="text" id="arr-lot-${n}" readonly style="background:var(--surface2);color:var(--text-2);cursor:default;"></div>
+      </div>`;
+  } else {
+    div.innerHTML=`
+      <div class="prod-head"><span class="prod-num">商品 ${n}</span>${delBtn}</div>
+      <div class="prod-body">
+        <div class="prod-row"><label class="mini-l">商品コード <small>列 D</small></label>
+          <select class="mini-select prod-select" id="ship-pc-${n}"><option value="">— 商品を選択 —</option></select></div>
+        <div class="prod-row three">
+          <div><label class="mini-l">数量 <small>列 F</small></label><input class="mini-input" type="number" id="ship-qty-${n}" placeholder="0" min="0" step="0.01"></div>
+          <div><label class="mini-l">単位</label>
+            <select class="mini-select" id="ship-unit-${n}">
+              <option value="kg">kg</option>
+              <option value="回">回</option>
+            </select></div>
+          <div><label class="mini-l">単価 <small>列 G</small></label><input class="mini-input" type="number" id="ship-prc-${n}" placeholder="0" min="0"></div>
+        </div>
+        <div class="prod-row"><label class="mini-l">手数 <small>列 H</small></label>
+          <select class="mini-select" id="ship-fee-${n}">
+            <option value="0%">0%</option>
+            <option value="8%">8%</option>
+            <option value="10%" selected>10%</option>
+          </select></div>
+        <div class="prod-row"><label class="mini-l">ロット番号 <small>列 K</small></label>
+          <select class="mini-select lot-select" id="ship-lot-${n}"><option value="">— ロットを選択 —</option></select></div>
+      </div>`;
+  }
+
+  document.getElementById(type+'-rows').appendChild(div);
+  if(PROD_LIST.length>0)buildProdSelect(document.getElementById(type+'-pc-'+n));
+  if(type==='arr'){document.getElementById('arr-lot-'+n).value=genLot();}
+  else if(LOT_LIST.length>0)buildLotSelect(document.getElementById('ship-lot-'+n));
+  updateCount(type);
+}
+function removeRow(id){const el=document.getElementById(id);if(el){el.remove();updateCount(id.startsWith('arr')?'arr':'ship');}}
+function updateCount(type){document.getElementById(type+'-count').textContent=document.getElementById(type+'-rows').querySelectorAll('.prod-card').length+'件';}
+
+// ── Submit ──
+async function submitData(type) {
+  const btn=document.getElementById(type+'-btn');
+  const rows_el=document.getElementById(type+'-rows').querySelectorAll('.prod-card');
+  if(rows_el.length===0){showToast('商品を追加してください','err');return;}
+
+  let rows=[];
+  if(type==='ship') {
+    const date=getDate('ship-month','ship-day');
+    const store=document.getElementById('ship-store').value.trim();
+    if(!store){showToast('店舗コードを入力してください','err');return;}
+    rows_el.forEach(el=>{
+      const n=el.id.replace('shipr','');
+      const pc=document.getElementById('ship-pc-'+n)?.value||'';
+      const qty=document.getElementById('ship-qty-'+n)?.value||'';
+      const unit=document.getElementById('ship-unit-'+n)?.value||'kg';
+      rows.push({date,storeCode:store,storeName:STORES[String(parseInt(store))]||'',
+        productCode:pc,productName:PRODUCTS[pc]||'',
+        qty: qty ? qty+unit : '',
+        price:document.getElementById('ship-prc-'+n)?.value||'',
+        fee:document.getElementById('ship-fee-'+n)?.value||'',
+        lot:document.getElementById('ship-lot-'+n)?.value||''});
+    });
+  } else {
+    const date=getDate('arr-month','arr-day');
+    rows_el.forEach(el=>{
+      const n=el.id.replace('arrr','');
+      const pc=document.getElementById('arr-pc-'+n)?.value||'';
+      const qty=document.getElementById('arr-qty-'+n)?.value||'';
+      const unit=document.getElementById('arr-unit-'+n)?.value||'kg';
+      rows.push({date,productCode:pc,productName:PRODUCTS[pc]||'',
+        qty: qty ? qty+unit : '',
+        price:document.getElementById('arr-prc-'+n)?.value||'',
+        tax:document.getElementById('arr-tax-'+n)?.value||'',
+        lot:document.getElementById('arr-lot-'+n)?.value||''});
+    });
+  }
+
+  const origHTML=btn.innerHTML;
+  btn.disabled=true; btn.innerHTML='<span class="spin">◌</span> 送信中...';
+  try {
+    const action=type==='ship'?'writeShipment':'writeArrival';
+    const data=await api(action,{rows:JSON.stringify(rows)});
+    if(data.success) {
+      showToast('✓ '+data.message,'ok');
+      document.getElementById(type+'-rows').innerHTML=''; counters[type]=0; updateCount(type);
+      if(type==='ship'){document.getElementById('ship-store').value='';document.getElementById('ship-store-tag').innerHTML='';setTodayDate('ship-month','ship-day');}
+      else{setTodayDate('arr-month','arr-day');loadLots();}
+      addRow(type);
+      pnlLoaded=false; lotLoaded=false;
+    } else showToast('エラー: '+data.message,'err');
+  } catch(e){showToast('送信失敗: '+e.message,'err');}
+  btn.disabled=false; btn.innerHTML=origHTML;
+}
+
+// ── Lot list ──
+function loadLotStatus(){try{LOT_STATUS=JSON.parse(localStorage.getItem('lot_status')||'{}');}catch(e){LOT_STATUS={};}}
+function saveLotStatus(){localStorage.setItem('lot_status',JSON.stringify(LOT_STATUS));}
+
+async function loadLotList() {
+  const el=document.getElementById('lot-list-content');
+  el.innerHTML=`<div class="tab-loading"><div class="spin" style="font-size:20px;color:var(--lot);">◌</div><span>読み込み中…</span></div>`;
+  try {
+    const data=await api('getLots');
+    if(!data.success)throw new Error(data.message);
+    LOT_LIST=data.lots||[];
+    renderLotList();
+  } catch(e){el.innerHTML=`<div class="empty-state"><div class="empty-icon">⚠️</div>取得失敗<br><small>${e.message}</small></div>`;}
+}
+
+function filterLots(f) {
+  curLotFilter=f;
+  ['all','active','sold'].forEach(k=>{document.getElementById('lot-f-'+k).className='lot-filter-btn'+(k===f?' active':'');});
+  renderLotList();
+}
+
+function renderLotList() {
+  const el=document.getElementById('lot-list-content');
+  let data=LOT_LIST;
+  if(curLotFilter==='active')data=data.filter(l=>LOT_STATUS[l]!=='sold');
+  if(curLotFilter==='sold')data=data.filter(l=>LOT_STATUS[l]==='sold');
+  if(data.length===0){el.innerHTML=`<div class="empty-state"><div class="empty-icon">📦</div>ロットがありません</div>`;return;}
+  el.innerHTML=data.map(lotId=>{
+    const sold=LOT_STATUS[lotId]==='sold';
+    const status=sold?'完売':'販売中';
+    const badgeCls=sold?'sold':'active';
+    return `<div class="lot-item"><div class="lot-item-head">
+      <div class="lot-item-left"><div class="lot-id">${lotId}</div></div>
+      <div class="lot-item-right">
+        <span class="lot-status-badge ${badgeCls}">${status}</span>
+        ${!sold?`<button class="kanryo-btn" onclick="markSold('${lotId}',this)">完売にする</button>`:''}
+      </div></div></div>`;
+  }).join('');
+}
+
+function markSold(lotId,btn) {
+  if(!confirm(`「${lotId}」を完売にしますか？`))return;
+  btn.disabled=true;
+  LOT_STATUS[lotId]='sold'; saveLotStatus();
+  showToast('✓ '+lotId+' を完売にしました','ok');
+  renderLotList(); pnlLoaded=false;
+}
+
+// ── PnL ──
+async function loadPnL() {
+  const el=document.getElementById('pnl-content');
+  el.innerHTML=`<div class="tab-loading"><div class="spin" style="font-size:20px;color:var(--pnl);">◌</div><span>集計中…</span></div>`;
+  ['pnl-sales','pnl-cost','pnl-profit'].forEach(id=>{document.getElementById(id).textContent='—';document.getElementById(id).className='pnl-sum-value';});
+  try {
+    const data=await api('getLotPnL');
+    if(!data.success)throw new Error(data.message);
+    PNL_DATA=data.lots||[];
+    let totalSales=0,totalCost=0;
+    PNL_DATA.forEach(l=>{totalSales+=l.totalSales||0;totalCost+=l.totalCost||0;});
+    const profit=totalSales-totalCost;
+    document.getElementById('pnl-sales').textContent='¥'+fmt(totalSales);
+    document.getElementById('pnl-cost').textContent='¥'+fmt(totalCost);
+    const pel=document.getElementById('pnl-profit');
+    pel.textContent=(profit>=0?'+':'')+'¥'+fmt(profit);
+    pel.className='pnl-sum-value '+(profit>=0?'profit':'loss');
+    renderPnlTab();
+  } catch(e){el.innerHTML=`<div class="empty-state"><div class="empty-icon">⚠️</div>取得失敗<br><small>${e.message}</small></div>`;}
+}
+
+function switchPnlTab(t) {
+  curPnlTab=t;
+  ['lot','week','month'].forEach(k=>{document.getElementById('pnl-t-'+k).className='pnl-tab-btn'+(k===t?' active':'');});
+  renderPnlTab();
+}
+
+function renderPnlTab() {
+  const el=document.getElementById('pnl-content');
+  if(PNL_DATA.length===0){el.innerHTML=`<div class="empty-state"><div class="empty-icon">📊</div>データがありません</div>`;return;}
+  if(curPnlTab==='lot') {
+    el.innerHTML=PNL_DATA.map(lot=>{
+      const profit=(lot.totalSales||0)-(lot.totalCost||0);
+      const margin=lot.totalSales>0?(profit/lot.totalSales*100).toFixed(1)+'%':'0%';
+      const pc=profit>0?'profit':profit<0?'loss':'break';
+      const sign=profit>=0?'+':'';
+      const arrRows=(lot.arrivals||[]).map(a=>`<div class="lot-pnl-detail"><span class="lot-pnl-detail-label">${a.productName||a.productCode} × ${fmt(a.qty)} @ ¥${fmt(a.price)}</span><span class="lot-pnl-detail-value">¥${fmt((a.qty||0)*(a.price||0))}</span></div>`).join('');
+      const shipRows=(lot.shipments||[]).map(s=>`<div class="lot-pnl-detail"><span class="lot-pnl-detail-label">${s.storeName||s.storeCode} · ${s.productName||s.productCode}</span><span class="lot-pnl-detail-value">¥${fmt(s.lineSales||0)}</span></div>`).join('');
+      return `<div class="lot-pnl-card">
+        <div class="lot-pnl-head" onclick="togglePnl('lpb-${lot.lotId}')">
+          <div class="lot-pnl-head-left"><div class="lot-pnl-id">${lot.lotId}</div><div class="lot-pnl-date">${lot.date||'—'}</div></div>
+          <div class="lot-pnl-head-right"><div class="lot-pnl-badge ${pc}">${sign}¥${fmt(profit)}</div><div class="lot-pnl-margin">利益率 ${margin}</div></div>
+        </div>
+        <div class="lot-pnl-body" id="lpb-${lot.lotId}">
+          <div class="lot-pnl-section arr">入荷（仕入れ）</div>
+          ${arrRows||'<div class="lot-pnl-detail"><span class="lot-pnl-detail-label" style="color:var(--text-3)">記録なし</span><span></span></div>'}
+          <div class="lot-pnl-subtotal"><span class="lot-pnl-subtotal-label">仕入合計</span><span class="lot-pnl-subtotal-value">¥${fmt(lot.totalCost||0)}</span></div>
+          <div class="lot-pnl-section ship" style="border-top:0.5px solid var(--border);">出荷（売上）</div>
+          ${shipRows||'<div class="lot-pnl-detail"><span class="lot-pnl-detail-label" style="color:var(--text-3)">記録なし</span><span></span></div>'}
+          <div class="lot-pnl-subtotal"><span class="lot-pnl-subtotal-label">売上合計</span><span class="lot-pnl-subtotal-value">¥${fmt(lot.totalSales||0)}</span></div>
+          <div class="lot-pnl-subtotal" style="border-top:1px solid var(--border-s);">
+            <span class="lot-pnl-subtotal-label">${profit>=0?'利益':'損失'}</span>
+            <span class="lot-pnl-subtotal-value ${pc}">${sign}¥${fmt(profit)}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    const map={};
+    PNL_DATA.forEach(lot=>{
+      const key=curPnlTab==='month'?(lot.date||'').substring(0,7)||'不明':getWeekLabel(lot.date);
+      if(!map[key])map[key]={sales:0,cost:0,sortKey:lot.date||''};
+      map[key].sales+=lot.totalSales||0; map[key].cost+=lot.totalCost||0;
+    });
+    const keys=Object.keys(map).sort((a,b)=>map[b].sortKey.localeCompare(map[a].sortKey));
+    const rows=keys.map(k=>{
+      const {sales,cost}=map[k]; const profit=sales-cost;
+      const margin=sales>0?(profit/sales*100).toFixed(1)+'%':'0%';
+      const pc=profit>0?'profit':profit<0?'loss':'';
+      const sign=profit>=0?'+':'';
+      return `<tr><td>${k}</td><td class="num">¥${fmt(sales)}</td><td class="num">¥${fmt(cost)}</td><td class="num ${pc}">${sign}¥${fmt(profit)}</td><td class="num" style="color:var(--text-3)">${margin}</td></tr>`;
+    }).join('');
+    el.innerHTML=`<div class="pnl-table-wrap"><table class="pnl-table"><thead><tr>
+      <th>${curPnlTab==='month'?'月':'週'}</th>
+      <th class="num">売上</th><th class="num">仕入</th><th class="num">利益</th><th class="num">利益率</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+}
+
+function togglePnl(id){const el=document.getElementById(id);if(el)el.classList.toggle('open');}
+
+function getWeekLabel(dateStr) {
+  if(!dateStr)return '不明';
+  try {
+    const d=new Date(dateStr.replace(/\//g,'-'));
+    const year=d.getFullYear(),jan1=new Date(year,0,1);
+    const week=Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
+    const dow=d.getDay()===0?6:d.getDay()-1;
+    const mon=new Date(d);mon.setDate(d.getDate()-dow);
+    const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+    const f=dt=>(dt.getMonth()+1)+'/'+String(dt.getDate()).padStart(2,'0');
+    return year+'/W'+String(week).padStart(2,'0')+' ('+f(mon)+'〜'+f(sun)+')';
+  } catch(e){return dateStr;}
+}
+
+function showToast(msg,type) {
+  const t=document.getElementById('toast');
+  const icon=type==='ok'
+    ?`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20,6 9,17 4,12"/></svg>`
+    :`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  t.innerHTML=icon+msg; t.className='toast '+type+' show';
+  if(toastTm)clearTimeout(toastTm);
+  toastTm=setTimeout(()=>{t.className='toast';},3500);
+}
+</script>
+</body>
+</html>
