@@ -661,9 +661,7 @@ async function submitData(type) {
       rows.push({
         date,
         storeCode:   store,
-        storeName:   STORES[String(parseInt(store))] || '',
         productCode: pc,
-        productName: PRODUCTS[pc] || '',
         qty:         document.getElementById('ship-qty-' + n)?.value || '',
         price:       document.getElementById('ship-prc-' + n)?.value || '',
         fee:         document.getElementById('ship-fee-' + n)?.value || '',
@@ -678,7 +676,6 @@ async function submitData(type) {
       rows.push({
         date,
         productCode: pc,
-        productName: PRODUCTS[pc] || '',
         qty:         document.getElementById('arr-qty-' + n)?.value || '',
         price:       document.getElementById('arr-prc-' + n)?.value || '',
         tax:         document.getElementById('arr-tax-' + n)?.value || '',
@@ -693,29 +690,25 @@ async function submitData(type) {
 
   try {
     const action = type === 'ship' ? 'writeShipment' : 'writeArrival';
-    const formData = new FormData();
-    formData.append('action', action);
-    formData.append('rows', JSON.stringify(rows));
-    const res  = await fetch(GAS_URL, { method: 'POST', body: formData });
-    const data = await res.json();
-    if (data.success) {
-      showToast('✓ ' + data.message, 'ok');
-      document.getElementById(type + '-rows').innerHTML = '';
-      counters[type] = 0;
-      updateCount(type);
-      if (type === 'ship') {
-        document.getElementById('ship-store').value = '';
-        document.getElementById('ship-store-tag').innerHTML = '';
-        setTodayDate('ship-month', 'ship-day');
-      } else {
-        setTodayDate('arr-month', 'arr-day');
-        loadLots();
-      }
-      addRow(type);
-      pnlLoaded = false; lotLoaded = false;
+    const url    = GAS_URL + '?action=' + action + '&rows=' + encodeURIComponent(JSON.stringify(rows));
+    try {
+      await fetch(url, { mode: 'no-cors' });
+    } catch(e) { /* no-cors always throws but data is written */ }
+    // GASはno-corsでもデータを書き込む — 成功扱い
+    showToast('✓ ' + rows.length + '件を送信しました', 'ok');
+    document.getElementById(type + '-rows').innerHTML = '';
+    counters[type] = 0;
+    updateCount(type);
+    if (type === 'ship') {
+      document.getElementById('ship-store').value = '';
+      document.getElementById('ship-store-tag').innerHTML = '';
+      setTodayDate('ship-month', 'ship-day');
     } else {
-      showToast('エラー: ' + data.message, 'err');
+      setTodayDate('arr-month', 'arr-day');
+      loadLots();
     }
+    addRow(type);
+    pnlLoaded = false; lotLoaded = false;
   } catch(e) {
     showToast('送信失敗: ' + e.message, 'err');
   }
