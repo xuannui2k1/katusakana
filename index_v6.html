@@ -693,9 +693,11 @@ async function submitData(type) {
 
   try {
     const action = type === 'ship' ? 'writeShipment' : 'writeArrival';
-    const url    = GAS_URL + '?action=' + action + '&rows=' + encodeURIComponent(JSON.stringify(rows));
-    const res    = await fetch(url);
-    const data   = await res.json();
+    const formData = new FormData();
+    formData.append('action', action);
+    formData.append('rows', JSON.stringify(rows));
+    const res  = await fetch(GAS_URL, { method: 'POST', body: formData });
+    const data = await res.json();
     if (data.success) {
       showToast('✓ ' + data.message, 'ok');
       document.getElementById(type + '-rows').innerHTML = '';
