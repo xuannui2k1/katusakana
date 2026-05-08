@@ -369,9 +369,10 @@ async function api(action, params={}) {
   Object.keys(params).forEach(k => {
     url += '&' + k + '=' + encodeURIComponent(params[k]);
   });
-  console.log('API URL:', url.substring(0, 200));
-  const res = await fetch(url, {redirect:'follow'});
-  return await res.json();
+  const res = await fetch(url);
+  const text = await res.text();
+  try { return JSON.parse(text); }
+  catch(e) { return { success: false, message: text }; }
 }
 
 // ── Masters ──
