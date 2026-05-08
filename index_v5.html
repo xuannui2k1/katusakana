@@ -546,10 +546,9 @@ async function submitData(type) {
       const n=el.id.replace('shipr','');
       const pc=document.getElementById('ship-pc-'+n)?.value||'';
       const qty=document.getElementById('ship-qty-'+n)?.value||'';
-      const unit=document.getElementById('ship-unit-'+n)?.value||'kg';
       rows.push({date,storeCode:store,storeName:STORES[String(parseInt(store))]||'',
         productCode:pc,productName:PRODUCTS[pc]||'',
-        qty: qty ? qty+unit : '',
+        qty: qty,
         price:document.getElementById('ship-prc-'+n)?.value||'',
         fee:document.getElementById('ship-fee-'+n)?.value||'',
         lot:document.getElementById('ship-lot-'+n)?.value||''});
@@ -560,9 +559,8 @@ async function submitData(type) {
       const n=el.id.replace('arrr','');
       const pc=document.getElementById('arr-pc-'+n)?.value||'';
       const qty=document.getElementById('arr-qty-'+n)?.value||'';
-      const unit=document.getElementById('arr-unit-'+n)?.value||'kg';
       rows.push({date,productCode:pc,productName:PRODUCTS[pc]||'',
-        qty: qty ? qty+unit : '',
+        qty: qty,
         price:document.getElementById('arr-prc-'+n)?.value||'',
         tax:document.getElementById('arr-tax-'+n)?.value||'',
         lot:document.getElementById('arr-lot-'+n)?.value||''});
