@@ -260,6 +260,15 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .hist-meta{font-size:11px;color:var(--text-3);margin-top:1px;}
 .hist-amount{font-size:13px;font-weight:700;color:var(--arr);flex-shrink:0;}
 
+/* Ship store rows */
+.ship-row{display:grid;grid-template-columns:60px 1fr 80px 70px 24px;gap:4px;align-items:center;margin-bottom:5px;}
+.ship-row input,.ship-row select{font-size:13px;padding:6px 6px;border-radius:var(--rs);border:0.5px solid var(--border-str);background:var(--surface2);color:var(--text);font-family:inherit;width:100%;-moz-appearance:textfield;}
+.ship-row input::-webkit-outer-spin-button,.ship-row input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.ship-row input:focus,.ship-row select:focus{outline:none;border-color:var(--ship);background:var(--surface);}
+.ship-store-tag{font-size:10px;color:var(--ok-fg);font-weight:600;margin-top:2px;min-height:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ship-del{width:24px;height:24px;border:none;background:none;color:var(--text-3);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+.ship-del:hover{color:var(--err-fg);background:var(--err-bg);}
+
 /* Grand total */
 .calc-total-wrap{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
 .calc-total-label{font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;}
@@ -432,7 +441,9 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 
       <!-- 出荷 -->
       <div id="tab-ship-content" style="display:none">
-        <div class="sec c-ship">基本情報</div>
+
+        <!-- 基本情報 -->
+        <div class="sec c-ship">📋 基本情報</div>
         <div class="card">
           <div class="f-row">
             <div class="f-lbl">日付<small>列 A</small></div>
@@ -445,22 +456,58 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
             </div>
           </div>
           <div class="f-row">
-            <div class="f-lbl">店舗コード<small>列 B</small></div>
+            <div class="f-lbl">ロット番号<small>列 K</small></div>
             <div class="f-val">
-              <input type="text" id="ship-store" placeholder="例: 2" oninput="lookupStore(this.value)">
-              <div id="ship-store-tag" style="min-height:20px;margin-top:5px;"></div>
+              <select class="mini-select lot-select" id="ship-lot-main" style="width:100%;font-size:14px;padding:9px 12px;">
+                <option value="">— ロットを選択 —</option>
+              </select>
+            </div>
+          </div>
+          <div class="f-row">
+            <div class="f-lbl">商品コード<small>列 D</small></div>
+            <div class="f-val">
+              <select class="mini-select prod-select" id="ship-pc-main" style="width:100%;font-size:14px;padding:9px 12px;">
+                <option value="">— 商品を選択 —</option>
+              </select>
+            </div>
+          </div>
+          <div class="f-row" style="border:none">
+            <div class="f-lbl">手数<small>列 H</small></div>
+            <div class="f-val">
+              <select id="ship-fee-main" style="width:100%;font-size:14px;padding:9px 12px;border-radius:var(--rs);border:0.5px solid var(--border-str);background:var(--surface);color:var(--text);">
+                <option value="0%">0%</option>
+                <option value="8%" selected>8%</option>
+                <option value="10%">10%</option>
+              </select>
             </div>
           </div>
         </div>
-        <div class="sec c-ship">商品明細</div>
-        <div class="row-count"><span id="ship-count">0件</span></div>
-        <div class="prod-list" id="ship-rows"></div>
-        <button class="add-btn ship" onclick="addRow('ship')">
+
+        <!-- 店舗明細 -->
+        <div class="sec c-ship" style="margin-top:16px;">
+          🏪 店舗別出荷
+          <div style="display:flex;gap:6px;">
+            <span id="ship-count" style="font-size:11px;color:var(--text-3);font-weight:400;">0件</span>
+            <button onclick="applyPriceAll()" style="font-size:10px;font-weight:700;color:var(--ship);background:none;border:0.5px solid var(--ship);border-radius:12px;padding:2px 8px;cursor:pointer;font-family:inherit;">
+              💲 全行に1行目の単価を適用
+            </button>
+          </div>
+        </div>
+
+        <!-- Column header -->
+        <div style="display:grid;grid-template-columns:60px 1fr 80px 70px 24px;gap:4px;padding:0 2px 4px;font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;">
+          <span>店舗</span><span style="padding-left:4px;">単価 (列G)</span><span>数量 (列F)</span><span></span><span></span>
+        </div>
+
+        <div id="ship-rows"></div>
+
+        <button class="add-btn ship" onclick="addShipRow()" style="margin-top:4px;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          商品を追加
+          店舗を追加
         </button>
+
         <div class="submit-wrap">
-          <button class="submit-btn ship" id="ship-btn" onclick="submitData('ship')">
+          <button class="submit-btn ship" id="ship-btn" onclick="submitShip()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9" fill="currentColor" stroke="none"/></svg>
             出荷数シートに送信
           </button>
@@ -570,7 +617,9 @@ function launchApp() {
   setTodayDate('ship-month', 'ship-day');
   loadLotStatus();
   addRow('arr');
-  addRow('ship');
+  addShipRow();
+  if (LOT_LIST.length > 0) buildLotSelect(document.getElementById('ship-lot-main'));
+  if (PROD_LIST.length > 0) buildProdSelect(document.getElementById('ship-pc-main'));
   loadMasters();
 }
 
@@ -688,6 +737,10 @@ function buildLotSelect(sel) {
   });
   if (cur) sel.value = cur;
 }
+function refreshShipLot() {
+  const s = document.getElementById('ship-lot-main');
+  if (s) buildLotSelect(s);
+}
 
 function lookupStore(v) {
   const el = document.getElementById('ship-store-tag');
@@ -708,96 +761,134 @@ function genLot() {
   return 'LOT-' + mm + dd + '-' + String(counters.arr).padStart(3, '0');
 }
 
+// ── arr init ──
 function addRow(type) {
-  counters[type]++;
-  const n = counters[type];
-  const div = document.createElement('div');
-  div.className = 'prod-card';
-  div.id = type + 'r' + n;
-  const delBtn = `<button class="del-btn" onclick="removeRow('${type}r${n}')">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>削除</button>`;
-
   if (type === 'arr') {
-    // arr uses 2-step flow — addRow('arr') is called during init only to set up lot display
     document.getElementById('arr-lot-display').value = genLot();
     if (PROD_LIST.length > 0) buildProdSelect(document.getElementById('arr-pc-main'));
-    return; // no card appended for arr
-  } else {
-    div.innerHTML = `
-      <div class="prod-head"><span class="prod-num">商品 ${n}</span>${delBtn}</div>
-      <div class="prod-body">
-        <div class="prod-row">
-          <label class="mini-l">商品コード <small>列 D</small></label>
-          <select class="mini-select prod-select" id="ship-pc-${n}"><option value="">— 商品を選択 —</option></select>
-        </div>
-        <div class="prod-row qty-row">
-          <div><label class="mini-l">数量 <small>列 F</small></label>
-            <input class="mini-input" type="number" id="ship-qty-${n}" placeholder="0" min="0" step="0.01"></div>
-          <div><label class="mini-l">単位</label>
-            <select class="mini-select" id="ship-unit-${n}"><option value="kg">kg</option><option value="回">回</option></select></div>
-          <div><label class="mini-l">単価 <small>列 G</small></label>
-            <input class="mini-input" type="number" id="ship-prc-${n}" placeholder="0" min="0"></div>
-        </div>
-        <div class="prod-row">
-          <label class="mini-l">手数 <small>列 H</small></label>
-          <select class="mini-select" id="ship-fee-${n}">
-            <option value="0%">0%</option>
-            <option value="8%">8%</option>
-            <option value="10%" selected>10%</option>
-          </select>
-        </div>
-        <div class="prod-row">
-          <label class="mini-l">ロット番号 <small>列 K</small></label>
-          <select class="mini-select lot-select" id="ship-lot-${n}"><option value="">— ロットを選択 —</option></select>
-        </div>
-      </div>`;
   }
-
-  document.getElementById(type + '-rows').appendChild(div);
-  if (PROD_LIST.length > 0) buildProdSelect(document.getElementById(type + '-pc-' + n));
-  if (type === 'arr') {
-    document.getElementById('arr-lot-' + n).value = genLot();
-  } else if (LOT_LIST.length > 0) {
-    buildLotSelect(document.getElementById('ship-lot-' + n));
-  }
-  updateCount(type);
 }
 
-function removeRow(id) {
+// ── ship store rows ──
+let shipCounter = 0;
+function addShipRow() {
+  shipCounter++;
+  const id  = 'sr' + shipCounter;
+  const div = document.createElement('div');
+  div.id = id; div.className = 'ship-row';
+  div.innerHTML = `
+    <div>
+      <input type="number" id="${id}-store" placeholder="店舗" min="1" step="1"
+        inputmode="numeric" oninput="lookupShipStore('${id}')">
+      <div class="ship-store-tag" id="${id}-tag"></div>
+    </div>
+    <input type="number" id="${id}-price" placeholder="単価" min="0" step="1" inputmode="decimal">
+    <input type="number" id="${id}-qty"   placeholder="数量" min="0" step="0.01" inputmode="decimal">
+    <select id="${id}-unit"><option value="kg">kg</option><option value="回">回</option></select>
+    <button class="ship-del" onclick="removeShipRow('${id}')">×</button>`;
+  document.getElementById('ship-rows').appendChild(div);
+  updateShipCount();
+  document.getElementById(id + '-store').focus();
+}
+
+function removeShipRow(id) {
   const el = document.getElementById(id);
-  if (el) { el.remove(); updateCount(id.startsWith('arr') ? 'arr' : 'ship'); }
+  if (el) { el.remove(); updateShipCount(); }
 }
-function updateCount(type) {
-  document.getElementById(type + '-count').textContent =
-    document.getElementById(type + '-rows').querySelectorAll('.prod-card').length + '件';
+
+function updateShipCount() {
+  document.getElementById('ship-count').textContent =
+    document.getElementById('ship-rows').querySelectorAll('.ship-row').length + '件';
+}
+
+function lookupShipStore(rowId) {
+  const val  = document.getElementById(rowId + '-store').value.trim();
+  const tag  = document.getElementById(rowId + '-tag');
+  const name = STORES[String(parseInt(val))];
+  tag.textContent = val ? (name || '？ 未登録') : '';
+  tag.style.color = name ? 'var(--ok-fg)' : 'var(--err-fg)';
+}
+
+function applyPriceAll() {
+  const rows = document.getElementById('ship-rows').querySelectorAll('.ship-row');
+  if (rows.length < 2) { showToast('2行以上必要です', 'warn'); return; }
+  const firstPrice = document.getElementById(rows[0].id + '-price').value;
+  if (!firstPrice) { showToast('1行目の単価を入力してください', 'warn'); return; }
+  rows.forEach((row, i) => {
+    if (i === 0) return;
+    document.getElementById(row.id + '-price').value = firstPrice;
+  });
+  showToast('✓ 全行に ¥' + fmt(firstPrice) + ' を適用しました', 'ok');
 }
 
 // ════════════════════════════════
 // Submit — POST (triệt để fix URIError)
 // ════════════════════════════════
+// ════════════════════════════════
+// Submit shipment (new multi-store)
+// ════════════════════════════════
+async function submitShip() {
+  const btn  = document.getElementById('ship-btn');
+  const date = getDate('ship-month', 'ship-day');
+  const lot  = document.getElementById('ship-lot-main').value.trim();
+  const pc   = document.getElementById('ship-pc-main').value.trim();
+  const fee  = document.getElementById('ship-fee-main').value;
+  if (!lot) { showToast('ロット番号を選択してください', 'err'); return; }
+  if (!pc)  { showToast('商品コードを選択してください', 'err'); return; }
+
+  const storeRows = document.getElementById('ship-rows').querySelectorAll('.ship-row');
+  if (!storeRows.length) { showToast('店舗を追加してください', 'err'); return; }
+
+  const rows = [];
+  let hasErr = false;
+  storeRows.forEach(el => {
+    const id    = el.id;
+    const store = document.getElementById(id + '-store').value.trim();
+    const price = document.getElementById(id + '-price').value.trim();
+    const qty   = document.getElementById(id + '-qty').value.trim();
+    if (!store || !price || !qty) { hasErr = true; return; }
+    rows.push({ date, storeCode: store, productCode: pc, qty, price, fee, lot });
+  });
+  if (hasErr) { showToast('全行に店舗・単価・数量を入力してください', 'err'); return; }
+  if (!rows.length) { showToast('有効なデータがありません', 'err'); return; }
+
+  const confirmMsg = '📋 出荷確認\n\n' + date + '　' + lot + '\n商品: ' + pc + '\n手数: ' + fee + '\n店舗数: ' + rows.length + '件\n\n出荷数シートに送信しますか？';
+  if (!confirm(confirmMsg)) return;
+
+  const origHTML = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spin">◌</span> 送信中...';
+  try {
+    const body = 'action=writeShipment&rows=' + encodeURIComponent(JSON.stringify(rows));
+    let data;
+    try {
+      const res = await fetch(GAS_URL, { method:'POST', redirect:'follow', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+      data = JSON.parse(await res.text());
+    } catch(e) {
+      const res2 = await fetch(GAS_URL + '?action=writeShipment&rows=' + encodeURIComponent(JSON.stringify(rows)), { redirect:'follow' });
+      data = JSON.parse(await res2.text());
+    }
+    if (!data || !data.success) throw new Error(data?.message || '書き込みエラー');
+    showToast('✓ ' + rows.length + '店舗を送信しました', 'ok');
+    // Reset
+    setTodayDate('ship-month', 'ship-day');
+    document.getElementById('ship-lot-main').value = '';
+    document.getElementById('ship-pc-main').value  = '';
+    document.getElementById('ship-rows').innerHTML = '';
+    shipCounter = 0;
+    addShipRow();
+    updateShipCount();
+    pnlLoaded = false;
+  } catch(e) { showToast('送信失敗: ' + e.message, 'err'); }
+  btn.disabled = false; btn.innerHTML = origHTML;
+}
+
 async function submitData(type) {
   const btn    = document.getElementById(type + '-btn');
+  if (type === 'ship') { await submitShip(); return; }
   const rowEls = document.getElementById(type + '-rows').querySelectorAll('.prod-card');
   if (rowEls.length === 0) { showToast('商品を追加してください', 'err'); return; }
-
   let rows = [];
-  if (type === 'ship') {
-    const date  = getDate('ship-month', 'ship-day');
-    const store = document.getElementById('ship-store').value.trim();
-    if (!store) { showToast('店舗コードを入力してください', 'err'); return; }
-    rowEls.forEach(el => {
-      const n = el.id.replace('shipr', '');
-      rows.push({
-        date,
-        storeCode:   store,
-        productCode: document.getElementById('ship-pc-'  + n)?.value || '',
-        qty:         document.getElementById('ship-qty-' + n)?.value || '',
-        price:       document.getElementById('ship-prc-' + n)?.value || '',
-        fee:         document.getElementById('ship-fee-' + n)?.value || '',
-        lot:         document.getElementById('ship-lot-' + n)?.value || ''
-      });
-    });
-  } else {
+  if (false) {
     const date = getDate('arr-month', 'arr-day');
     rowEls.forEach(el => {
       const n = el.id.replace('arrr', '');
@@ -1154,11 +1245,15 @@ async function arrConfirmSubmit() {
 
     showToast('✓ 送信完了 ¥' + fmt(grandTotal), 'ok');
 
-    // Save to local history
-    arrHistory.unshift({ date, pc, name: PRODUCTS[pc] || pc, lot, amount: grandTotal, tax, time: new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}) });
-    if (arrHistory.length > 50) arrHistory.pop();
-    try { localStorage.setItem('arr_history', JSON.stringify(arrHistory)); } catch(e) {}
-    renderHist();
+    // Save history to GAS sheet
+    const histEntry = { date, pc, name: PRODUCTS[pc] || pc, lot, amount: grandTotal, tax };
+    try {
+      fetch(GAS_URL, { method:'POST', redirect:'follow',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body: 'action=saveArrHistory&rows=' + encodeURIComponent(JSON.stringify(histEntry))
+      });
+    } catch(e) {}
+    arrHistory = []; // force reload next open
 
     // Reset everything
     document.getElementById('arr-step2').style.display = 'none';
@@ -1190,6 +1285,21 @@ function toggleHist() {
   const btn  = document.getElementById('hist-toggle-btn');
   const open = body.classList.toggle('open');
   btn.classList.toggle('open', open);
+  if (open && !arrHistory.length) loadHist();
+}
+
+async function loadHist() {
+  const list = document.getElementById('hist-list');
+  list.innerHTML = '<div class="hist-empty">読み込み中…</div>';
+  try {
+    const res  = await fetch(GAS_URL + '?action=getArrHistory');
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+    arrHistory = data.history || [];
+    renderHist();
+  } catch(e) {
+    list.innerHTML = '<div class="hist-empty">取得失敗: ' + e.message + '</div>';
+  }
 }
 
 function renderHist() {
@@ -1207,20 +1317,19 @@ function renderHist() {
       <div class="hist-dot"></div>
       <div class="hist-info">
         <div class="hist-lot">${h.lot} — ${h.pc} ${h.name}</div>
-        <div class="hist-meta">${h.date}　${h.time}　税金 ${h.tax || 0}</div>
+        <div class="hist-meta">${h.date}　${h.time || ''}　税金 ${h.tax || 0}</div>
       </div>
       <div class="hist-amount">¥${fmt(h.amount)}</div>
     </div>`).join('');
 }
 
 function clearHist(e) {
-  e.stopPropagation(); // パネル開閉させない
+  e.stopPropagation();
   if (!arrHistory.length) { showToast('履歴はありません', 'warn'); return; }
-  if (!confirm('入荷履歴 ' + arrHistory.length + '件 をすべて削除しますか？\n\n※ シートのデータは削除されません')) return;
+  if (!confirm('入荷履歴の表示をクリアしますか？\n\n※ シートのデータは削除されません')) return;
   arrHistory = [];
-  try { localStorage.removeItem('arr_history'); } catch(e) {}
   renderHist();
-  showToast('🗑 履歴を削除しました', 'ok');
+  showToast('🗑 表示をクリアしました', 'ok');
 }
 
 // ════════════════════════════════
